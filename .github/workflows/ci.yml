@@ -1,34 +1,115 @@
-name: "CI NODE"
+name: CI Symfony
 
 on:
-    push:
-        paths:
-            - src/**
-            - "!src/docs/**"
-            - .github/workflows/ci.yml
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
 
 jobs:
 
-    lint:
-        name: "Lint tests"
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v6
-            - uses: actions/setup-node@v6
-            - run: npm install -D
-            - run: npm run lint
+  lint:
+    name: Linting
+    runs-on: ubuntu-latest
 
+    steps:
+      - uses: actions/checkout@v6
 
-    health-test:
-        needs: ["lint"]
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v6
-            - uses: actions/setup-node@v6
-            - run: npm install
-            - run: |
-                  npm start &
-                  sleep 5s
-                  curl -v http://localhost:3500/health
-              env:
-                  PORT: 3500
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: PHP CodeSniffer
+        run: vendor/bin/phpcs
+
+      - name: PHPStan
+        run: vendor/bin/phpstan analyse
+
+  healthcheck:
+    name: Healthcheck
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Start Symfony server
+        run: |
+          php -S 127.0.0.1:8000 -t public &
+          sleep 3
+
+      - name: HTTP Healthcheck
+        run: curl -f http://127.0.0.1:8000
+
+  tests:
+    name: Unit & Integration Tests
+    runs-on: ubuntu-latest
+    needs: healthcheck
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Unit tests
+        run: vendor/bin/phpunit --testsuite Unit
+
+      - name: Integration tests
+        run: vendor/bin/phpunit --testsuite Integration
+
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: tests
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Start Symfony server
+        run: |
+          php -S 127.0.0.1:8000 -t public &
+          sleep 3
+
+      - name: Cypress tests
+        run: npx cypress run
+
+  notify:
+    name: Notify
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [lint, healthcheck, tests, e2e]
+
+    steps:
+      - name: Workflow result
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "CI SUCCESS ✅"
+          else
+            echo "CI FAILED ❌"
+          fi
