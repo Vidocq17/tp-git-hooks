@@ -8,26 +8,20 @@ on:
 jobs:
 
   lint:
-    name: Linting
     runs-on: ubuntu-latest
-    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v6
 
-      - name: Setup de PHP
-        uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
 
-      - name: Installation dépendances
-        run: composer install --no-interaction --prefer-dist
+      - run: composer install --no-interaction --prefer-dist
 
-      - name: PHP CodeSniffer
-        run: vendor/bin/phpcs
+      - run: vendor/bin/phpcs
 
-      - name: PHPStan
-        run: vendor/bin/phpstan analyse -c phpstan.dist.neon
+      - run: vendor/bin/phpstan analyse -c phpstan.dist.neon
 
   health-test:
     runs-on: ubuntu-latest
@@ -36,36 +30,32 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-        uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
 
-        run: composer install --no-interaction --prefer-dist
+      - run: composer install --no-interaction --prefer-dist
 
-        run: |
+      - run: |
           php -S 127.0.0.1:8000 -t public &
           sleep 5
 
-        run: curl -f http://127.0.0.1:8000
+      - run: curl -f http://127.0.0.1:8000
 
   tests:
-    name: Tests
     runs-on: ubuntu-latest
     needs: health-test
 
     steps:
       - uses: actions/checkout@v6
 
-      - name: Setup de PHP
-        uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
 
-        run: composer install --no-interaction --prefer-dist
+      - run: composer install --no-interaction --prefer-dist
 
-        run: vendor/bin/phpunit --testsuite Unit
-
-        run: vendor/bin/phpunit --testsuite Integration
+      - run: vendor/bin/phpunit
 
   e2e:
     runs-on: ubuntu-latest
@@ -93,7 +83,7 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     if: always()
-    needs: [lint, healthcheck, tests, e2e]
+    needs: [lint, health-test, tests, e2e]
 
     steps:
       - run: echo "CI finished"
