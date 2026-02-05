@@ -18,5 +18,6 @@
     <exclude-pattern>public/index.php</exclude-pattern>
     <exclude-pattern>config/preload.php</exclude-pattern>
     <exclude-pattern>config/reference.php</exclude-pattern>
+    <exclude-pattern>tests/bootstrap.php</exclude-pattern>
 
 </ruleset>

@@ -6,7 +6,8 @@ $finder = (new PhpCsFixer\Finder())
     ->exclude('vendor')
     ->notPath('public/index.php')
     ->notPath('config/preload.php')
-    ->notPath('config/reference.php');
+    ->notPath('config/reference.php')
+    ->notPath('tests/bootstrap.php');
 
 return (new PhpCsFixer\Config())
     ->setRules([
