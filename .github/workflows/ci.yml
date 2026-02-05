@@ -37,8 +37,8 @@ jobs:
       - run: composer install --no-interaction --prefer-dist
 
       - run: |
-          php -S 127.0.0.1:8000 -t public &
-          sleep 5
+          php -S 127.0.0.1:8000 -t public public/index.php &
+          sleep 7
 
       - run: curl -f http://127.0.0.1:8000
 
